@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       String   @id @default(cuid())
+  email    String   @unique
+  role     Role     @default(SIMPLE)
+  created  DateTime @default(now())
+  assemblies  Assembly[]
+  shipments   Shipment[]
+}
+
+enum Role {
+  SIMPLE
+  MANAGER
+}
+
+model Part {
+  id          String   @id @default(cuid())
+  sku         String   @unique
+  name        String
+  minStock    Int      @default(0)
+  onHand      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  bomChildren BOM[]    @relation("Children")
+  bomParent   BOM?     @relation("Parent", fields: [parentId], references: [id])
+  parentId    String?
+  ledger      InventoryLedger[]
+}
+
+model BOM {
+  id        String  @id @default(cuid())
+  parent    Part    @relation("Parent")
+  parentId  String
+  child     Part    @relation("Children")
+  childId   String
+  qty       Int
+}
+
+model Assembly {
+  id        String   @id @default(cuid())
+  part      Part     @relation(fields: [partId], references: [id])
+  partId    String
+  qty       Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model Shipment {
+  id        String   @id @default(cuid())
+  part      Part     @relation(fields: [partId], references: [id])
+  partId    String
+  qty       Int
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+}
+
+model InventoryLedger {
+  id          String   @id @default(cuid())
+  part        Part     @relation(fields: [partId], references: [id])
+  partId      String
+  delta       Int      // + for in, - for out
+  reason      String
+  createdAt   DateTime @default(now())
+}
